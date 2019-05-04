@@ -5,7 +5,7 @@ Draw the landscapes of your dream in Blender, paste them in Minecraft!
 - Obj files import
 - Convert object files to schematics
 - Material name parsing to get various blocks
-- Runs very fast
+- Fast ( < 10 seconds for a 500k vertices and 1m faces model)
 - Console only for the moment :(
 - Run in any platform (requires Java)
 
