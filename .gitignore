@@ -1,0 +1,15 @@
+# IDE files
+.idea
+
+# sbt files
+target
+project/project
+project/target
+
+# Test files
+*.mtl
+*.obj
+*.schematic
+
+# Output
+*.jar
