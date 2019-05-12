@@ -1,6 +1,10 @@
 package model
 
-
+/**
+  * This enumeration contains all the block that can be
+  * converted in a schematic. The value is the id of the
+  * block in MC.
+  */
 object Block extends Enumeration {
   val AIR = Value(0)
   val STONE = Value(1)

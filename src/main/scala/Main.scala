@@ -12,18 +12,19 @@ object Main extends App {
   println("Loading data from " + inputFile + "...")
   val vertices = ObjFileReader.read(inputFile).get
   println("Loading complete, creating schematic...")
-  val xMin = vertices.minBy(_._1)._1.toInt
-  val xMax = vertices.maxBy(_._1)._1.toInt
-  val yMin = vertices.minBy(_._2)._2.toInt
-  val yMax = vertices.maxBy(_._2)._2.toInt
-  val zMin = vertices.minBy(_._3)._3.toInt
-  val zMax = vertices.maxBy(_._3)._3.toInt
+  val xMin = vertices.minBy(_._1)._1
+  val xMax = vertices.maxBy(_._1)._1
+  val yMin = vertices.minBy(_._2)._2
+  val yMax = vertices.maxBy(_._2)._2
+  val zMin = vertices.minBy(_._3)._3
+  val zMax = vertices.maxBy(_._3)._3
   val width = xMax - xMin + 1
   val height = yMax - yMin + 1
   val length = zMax - zMin + 1
   val schem = Schematic(width, height, length)
   vertices.foreach(v => {
-    schem(v._1.toInt - xMin, v._2.toInt - yMin, v._3.toInt - zMin) = v._4
+    schem.setBlock(v._1 - xMin, v._2 - yMin, v._3 - zMin, v._4._1)
+    schem.setData(v._1 - xMin, v._2 - yMin, v._3 - zMin, v._4._2)
   })
 
   println()
