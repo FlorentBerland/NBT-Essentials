@@ -24,6 +24,7 @@ object ObjFileReader {
     val source = Source.fromFile(fileName)
     val coordsArray = Array.ofDim[((Double, Double, Double), ListBuffer[(Block.Value, Byte)])](vertexCount)
     val additionalBlocks = new ListBuffer[((Int, Int, Int), Block.Value, Byte)]()
+    val materialRegex = "(.*)_([0-9]|(?:1[0-5]))".r
     var currentMaterial = Block.AIR
     var currentBlockData: Byte = 0
     var vertexIndex = 0
@@ -35,8 +36,14 @@ object ObjFileReader {
         vertexIndex = vertexIndex + 1
       case x if x.startsWith("usemtl ") =>
         val matName = x.split(" ")(1).toUpperCase
-        currentMaterial = try Block.withName(matName.splitAt(matName.lastIndexOf("_"))._1) catch { case _: Exception => Block.AIR}
-        currentBlockData = try matName.splitAt(matName.lastIndexOf("_"))._2.toByte catch { case _: Exception => 0}
+        matName match {
+          case materialRegex(name, data) =>
+            currentMaterial = try Block.withName(name) catch { case _: Exception => Block.AIR}
+            currentBlockData = if(currentMaterial == Block.AIR) 0 else data.toByte
+          case name =>
+            currentMaterial = try Block.withName(name) catch { case _: Exception => Block.AIR}
+            currentBlockData = 0
+        }
       case x if x.startsWith("f ") =>
         val vertexIndices = x.split(" ").tail.map(_.split("/")(0).toInt)
         fillFace(additionalBlocks, currentMaterial, currentBlockData, vertexIndices.map(i => coordsArray(i - 1)._1):_*)

@@ -20,10 +20,10 @@ Blender: 1 block for 1 unit, so make sure your build is large enough to preserve
 Customize the blocks by naming the materials of your 3D model as in Minecraft, in upper snake case. Examples:
 - GRASS
 - COAL_ORE
-- LEAVES
+- LEAVES_3 (for the #3 variant of leaves)
 - etc
 
-** Unrecognized matrials names be set as "AIR" and their associated faces will not be converted. **
+**Unrecognized matrials names be set as "AIR" and their associated faces will not be converted.**
 Export as WaveFont object file. Don't forget to change the axis in the export window: Y forward and Z up. You also have to check the 
 "Triangulate faces" box. Then name your file and hit "Export Obj".
 
