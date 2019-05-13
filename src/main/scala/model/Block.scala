@@ -6,6 +6,7 @@ package model
   * block in MC.
   */
 object Block extends Enumeration {
+  type Block = Value
   val AIR = Value(0)
   val STONE = Value(1)
   val GRASS = Value(2)

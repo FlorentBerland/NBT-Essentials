@@ -2,6 +2,7 @@ import java.util.Date
 
 import io._
 import model.Schematic
+import ui.MainFrame
 
 
 object Main extends App {
