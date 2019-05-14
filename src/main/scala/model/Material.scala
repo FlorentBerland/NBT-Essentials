@@ -2,11 +2,11 @@ package model
 
 import model.Block.Block
 
-case class Material(block: Block, data: Byte)
+case class Material(name: String, block: Block, data: Byte)
 
 object Material {
 
-  val default = Material(Block.AIR, 0)
+  val default = Material("Air", Block.AIR, 0)
 
   def parseMaterial(rawName: String): Option[Material] = {
     val (blockName, data): (String, Byte) = {
@@ -16,8 +16,11 @@ object Material {
         case name => (name, 0)
       }
     }
+
+    val matName = blockName.head + blockName.tail.replace("_", " ").toLowerCase
+
     try {
-      Some(Material(Block.withName(blockName), data))
+      Some(Material(matName, Block.withName(blockName), data))
     } catch {
       case _: Exception => None
     }
