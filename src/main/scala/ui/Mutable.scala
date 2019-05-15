@@ -17,8 +17,4 @@ class Mutable[T](initialValue: T){
   def addListener(callback: T => Unit): Unit = callbacks += callback
   def removeListener(callback: T => Unit): Unit = callbacks -= callback
 
-  implicit class ToMutable(elem: T){
-    def toMutable = new Mutable[T](elem)
-  }
-
 }

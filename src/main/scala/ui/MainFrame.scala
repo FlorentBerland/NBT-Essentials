@@ -1,13 +1,13 @@
 package ui
 
-import java.awt.{BorderLayout, Dimension, Toolkit}
+import java.awt.{BorderLayout, Dimension, GridLayout, Toolkit}
 import java.io.{File, FileOutputStream}
 
 import io.ObjFileReader2
-import model.mesh.Object
 import javax.swing._
 import javax.swing.border.{BevelBorder, TitledBorder}
 import javax.swing.filechooser.FileFilter
+import model.mesh.ObjectInfo
 
 import scala.io.{BufferedSource, Source}
 import scala.util._
@@ -26,19 +26,19 @@ class MainFrame extends JFrame {
               override def accept(f: File): Boolean = !f.isFile || f.getName.endsWith(".obj")
               override def getDescription = "Wavefront files (*.obj)"
             })
+            setFileFilter(getChoosableFileFilters()(1))
           }
           if(fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
             val fileName = fileChooser.getSelectedFile.getAbsolutePath
             ObjFileReader2.read(fileName) match {
               case Success(objects) =>
-                store.objects() = objects
+                store.objectsToSelection() = objects.map(_ -> new Mutable(true)).toMap
                 val files = store.recentFiles()
                 val (l1, l2) = files.splitAt(files.indexOf(fileName) + 1)
-                store.recentFiles() = fileName +: (l1.init ++ l2)
-                store.selectedObjects() = objects.toSet
+                store.recentFiles() = fileName +: (l1.take(l1.size - 1) ++ l2)
               case Failure(ex) =>
                 ex.printStackTrace()
-                store.objects() = List.empty
+                store.objectsToSelection() = Map.empty
                 store.recentFiles() = store.recentFiles().filterNot(_ == fileName)
             }
           }
@@ -52,13 +52,12 @@ class MainFrame extends JFrame {
               addActionListener(_ => {
                 ObjFileReader2.read(file) match {
                   case Success(objects) =>
-                    store.selectedObjects() = objects.toSet
-                    store.objects() = objects
+                    store.objectsToSelection() = objects.map(_ -> new Mutable(true)).toMap
                     val (l1, l2) = files.splitAt(files.indexOf(file) + 1)
-                    store.recentFiles() = file +: (l1.init ++ l2)
+                    store.recentFiles() = file +: (l1.take(l1.size - 1) ++ l2)
                   case Failure(ex) =>
                     ex.printStackTrace()
-                    store.objects() = List.empty
+                    store.objectsToSelection() = Map.empty
                     store.recentFiles() = files.filterNot(_ == file)
                 }
               })
@@ -67,10 +66,7 @@ class MainFrame extends JFrame {
         })
       })
       add(new JSeparator())
-      add(new JMenuItem("Save"){
-        addActionListener(_ => notImplemented())
-      })
-      add(new JMenuItem("Save as..."){
+      add(new JMenuItem("Export..."){
         addActionListener(_ => notImplemented())
       })
       add(new JSeparator())
@@ -82,26 +78,88 @@ class MainFrame extends JFrame {
   add(new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
     new JScrollPane(new JPanel(){
       setLayout(new BoxLayout(this, BoxLayout.Y_AXIS))
-      store.objects.addListener(objects => {
+      store.objectsToSelection.addListener(objects => {
         removeAll()
-        objects.foreach(obj => {
-          add(new JCheckBox(obj.name){
-            setSelected(store.selectedObjects().contains(obj))
+        objects.foreach(kv => {
+          add(new JCheckBox(kv._1.name){
+            setSelected(kv._2())
             addActionListener(_ => {
-              if(isSelected){
-                store.selectedObjects() = store.selectedObjects() + obj
-              } else {
-                store.selectedObjects() = store.selectedObjects() - obj
-              }
-              println(store.selectedObjects().size)
+              store.objectsToSelection()(kv._1)() = isSelected
             })
+            store.objectsToSelection()(kv._1).addListener(setSelected)
           })
         })
       })
     }){
       setBorder(new TitledBorder("Objects to export"))
     },
-    new JPanel()
+    new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+      new JPanel(){
+        setBorder(new TitledBorder("Selection info"))
+        setLayout(new GridLayout(3, 4))
+        val getInfo = () => store.objectsToSelection()
+          .filter(_._2())
+          .map(_._1.objectInfo) match {
+          case collection if collection.nonEmpty => collection.reduce(_ merge _)
+          case _ => ObjectInfo.default
+        }
+        add(new JLabel("Width (X axis):"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            val info = getInfo()
+            val width = Math.ceil(info.xMax - info.xMin)
+            setText(width.toInt.toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+        add(new JLabel("Selected objects:"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            setText(store.objectsToSelection().count(_._2()).toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+        add(new JLabel("Height (Y axis):"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            val info = getInfo()
+            val height = Math.ceil(info.yMax - info.yMin)
+            setText(height.toInt.toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+        add(new JLabel("Faces:"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            setText(getInfo().nbFaces.toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+        add(new JLabel("Length (Z axis):"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            val info = getInfo()
+            val length = Math.ceil(info.zMax - info.zMin)
+            setText(length.toInt.toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+        add(new JLabel("Vertices:"))
+        add(new JLabel(){
+          val callback = (_: Boolean) => {
+            setText(getInfo().nbVertices.toString)
+          }
+          store.objectsToSelection.addListener(_ => callback(true))
+          store.objectsToSelection.addListener(_.foreach(_._2.addListener(callback)))
+        })
+      },
+      new JPanel()
+    )
   ){
     setDividerLocation(175)
   }, BorderLayout.CENTER)
@@ -112,8 +170,8 @@ class MainFrame extends JFrame {
     val timer = new Timer(
       1000,
       _ => memoryLabel.setText("Memory usage: " +
-        (Runtime.getRuntime.totalMemory() - Runtime.getRuntime.freeMemory()) / 1000000
-        + " Mo")
+        (Runtime.getRuntime.totalMemory() - Runtime.getRuntime.freeMemory()) / 1000
+        + " ko")
     ){ start() }
   }, BorderLayout.SOUTH)
 

@@ -60,12 +60,12 @@ object ObjFileReader2 {
         val vertexIndices = x.split(" ").tail.map(_.toInt)
         if(!currentObjectLines.contains(currentMaterial))
           currentObjectLines.put(currentMaterial, new ListBuffer[Line])
-        currentObjectLines(currentMaterial) += Line(vertexIndices.map(i => vertices(i)):_*)
+        currentObjectLines(currentMaterial) += Line(vertexIndices.map(i => vertices(i - 1)):_*)
       case x if x.startsWith("f ") =>
         val vertexIndices = x.split(" ").tail.map(_.split("/")(0).toInt)
         if(!currentObjectFaces.contains(currentMaterial))
           currentObjectFaces.put(currentMaterial, new ListBuffer[Face])
-        currentObjectFaces(currentMaterial) += Face(vertexIndices.map(i => vertices(i)):_*)
+        currentObjectFaces(currentMaterial) += Face(vertexIndices.map(i => vertices(i - 1)).toList)
       case x if x.startsWith("usemtl ") =>
         val matName = x.split(" ")(1).toUpperCase
         currentMaterial = MaterialGroup(matName)
