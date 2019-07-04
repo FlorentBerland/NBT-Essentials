@@ -9,7 +9,8 @@ case class Face(vertices: List[Vertex]){
       vertices.maxBy(_._2)._2,
       vertices.minBy(_._3)._3,
       vertices.maxBy(_._3)._3,
-      1, vertices.length
+      1, vertices.length,
+      if(vertices.size != 3) 1 else 0
     )
 
 }

@@ -3,7 +3,8 @@ package model.mesh
 case class ObjectInfo(xMin: Double, xMax: Double,
                       yMin: Double, yMax: Double,
                       zMin: Double, zMax: Double,
-                      nbFaces: Int, nbVertices: Int){
+                      nbFaces: Int, nbVertices: Int,
+                      nbBadFaces: Int){
 
   def merge(objectInfo: ObjectInfo): ObjectInfo = ObjectInfo(
     xMin min objectInfo.xMin,
@@ -13,13 +14,14 @@ case class ObjectInfo(xMin: Double, xMax: Double,
     zMin min objectInfo.zMin,
     zMax max objectInfo.zMax,
     nbFaces + objectInfo.nbFaces,
-    nbVertices + objectInfo.nbVertices
+    nbVertices + objectInfo.nbVertices,
+    nbBadFaces + objectInfo.nbBadFaces
   )
 
 }
 
 object ObjectInfo {
 
-  val default = ObjectInfo(0, 0, 0, 0, 0, 0, 0, 0)
+  val default = ObjectInfo(0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 }

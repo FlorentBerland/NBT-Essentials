@@ -9,7 +9,7 @@ case class Line(vertices: Vertex*){
     vertices.maxBy(_._2)._2,
     vertices.minBy(_._3)._3,
     vertices.maxBy(_._3)._3,
-    0, vertices.length
+    0, vertices.length, 0
   )
 
 }

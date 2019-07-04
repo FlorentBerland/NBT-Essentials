@@ -1,10 +1,10 @@
-package ui
+package ui.info
 
 import java.text.NumberFormat
 import java.util.Locale
 
 import javax.swing.{JLabel, Timer}
-import ui.MemoryDisplay.MemoryUnit
+import ui.info.MemoryDisplay.MemoryUnit
 
 class MemoryDisplay(intervalMillis: Int, unit: MemoryUnit) extends JLabel {
 

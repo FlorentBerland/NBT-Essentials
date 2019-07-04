@@ -6,16 +6,12 @@ import model.MaterialGroup
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 object ObjFileReader2 {
 
   def read(fileName: String): Try[List[model.mesh.Object]] = {
-    try {
-      Success(readImpl(fileName))
-    } catch {
-      case e: Exception => Failure(e)
-    }
+    Try(readImpl(fileName))
   }
 
   private def readImpl(fileName: String): List[Object] = {
@@ -48,7 +44,7 @@ object ObjFileReader2 {
       case x if x.startsWith("v ") =>
         val doubleArray = x.split(" ").tail.map(_.trim.toDouble)
         // Z axis is the height in a regular coordinate system but in MC it is the Y axis
-        vertices(vertexIndex) = (doubleArray(0), -doubleArray(2), doubleArray(1))
+        vertices(vertexIndex) = (doubleArray(0), doubleArray(2), -doubleArray(1))
         vertexIndex = vertexIndex + 1
         if(vertexIndex == vertices.length){
           // Extend the array
@@ -67,7 +63,7 @@ object ObjFileReader2 {
           currentObjectFaces.put(currentMaterial, new ListBuffer[Face])
         currentObjectFaces(currentMaterial) += Face(vertexIndices.map(i => vertices(i - 1)).toList)
       case x if x.startsWith("usemtl ") =>
-        val matName = x.split(" ")(1).toUpperCase
+        val matName = x.split(" ")(1)
         currentMaterial = MaterialGroup(matName)
       case _ =>
     }
