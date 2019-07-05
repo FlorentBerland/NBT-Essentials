@@ -4,7 +4,7 @@ import java.io.{File, FileOutputStream}
 
 import converters.ObjectToSchematicConverter
 import model.mesh.{Object, ObjectInfo}
-import io.{NBTFileWriter, ObjFileReader2}
+import io.{NBTFileWriter, ObjFileReader}
 import javax.swing.filechooser.FileFilter
 import javax.swing.{JFileChooser, JMenu, JMenuBar, JMenuItem, JSeparator}
 import model.{MaterialGroup, Schematic}
@@ -35,7 +35,7 @@ class MenuBar(store: DataStore) extends JMenuBar {
         if(schematicFileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION){
           store.execute(LoadFile(
             schematicFileChooser.getSelectedFile.getAbsolutePath,
-            ObjFileReader2.read(schematicFileChooser.getSelectedFile.getAbsolutePath)
+            ObjFileReader.read(schematicFileChooser.getSelectedFile.getAbsolutePath)
           ))
         }
       })
@@ -46,7 +46,7 @@ class MenuBar(store: DataStore) extends JMenuBar {
         if(_oldRecentFiles != store.recentFiles){
           removeAll()
           store.recentFiles.foreach(file => add(new JMenuItem(file){
-            addActionListener(_ => store.execute(LoadFile(file, ObjFileReader2.read(file))))
+            addActionListener(_ => store.execute(LoadFile(file, ObjFileReader.read(file))))
           }))
           _oldRecentFiles = store.recentFiles
         }
