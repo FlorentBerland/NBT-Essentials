@@ -1,7 +1,7 @@
 package model
 
 
-case class Material(blockId: Int, data: Int){
+case class Material(id: Int, variant: Int){
   def name: String = Material.all.find(_._2 == this).get._1
 }
 

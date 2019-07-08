@@ -1,3 +1,3 @@
 package model.nbt
 
-case class NBT(name: String, tree: TAG)
+class NBT(val name: String, val tree: TAG)

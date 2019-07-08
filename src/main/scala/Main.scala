@@ -33,7 +33,7 @@ object Main extends App {
           o.materialsToLines.map(kv => materialsRemap.find(_.name == kv._1.name).getOrElse(kv._1) -> kv._2)
         ))
       }(t => println("       done in " + t + " ms"))
-      val schematic = ObjectToSchematicConverter.createSchematic(remappedObjects, ObjectToSchematicConverter.Default)
+      val schematic = ObjectToSchematicConverter.createSchematic(remappedObjects)
       Time {
         print("Saving schematic into " + outputFile + "... ")
         NBTFileWriter.write(outputFile, schematic.toNBT)

@@ -1,6 +1,6 @@
 package io
 
-import java.io.{FileOutputStream, OutputStream}
+import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.util.zip.GZIPOutputStream
 
@@ -15,7 +15,7 @@ object NBTFileWriter {
     try {
       gzip = new GZIPOutputStream(new FileOutputStream(fileName))
       saveNBTTree(gzip, nbtTree)
-      Success(Unit)
+      Success()
     } catch {
       case e: Exception => Failure(e)
     } finally {

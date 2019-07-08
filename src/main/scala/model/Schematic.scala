@@ -3,32 +3,12 @@ package model
 import model.nbt._
 import model.nbt.utils.Extensions._
 
-import scala.util.{Failure, Success, Try}
+import scala.util._
 
 /**
   * Represents the Schematic data structure and contains basic operations such as block editing.
-  *
-  * @param tree The root of a schematic file. It has to contain all the required fields.
   */
-case class Schematic private(tree: TAG_Compound) {
-
-  private val blocks = tree("Blocks").asInstanceOf[TAG_Byte_Array].bytes
-  private val data = tree("Data").asInstanceOf[TAG_Byte_Array].bytes
-
-  /**
-    * The size of the schematic along the X axis
-    */
-  val width: Int = tree("Width").asInstanceOf[TAG_Short].value
-
-  /**
-    * The size of the schematic along the Y axis
-    */
-  val height: Int = tree("Height").asInstanceOf[TAG_Short].value
-
-  /**
-    * The size of the schematic along the Z axis
-    */
-  val length: Int = tree("Length").asInstanceOf[TAG_Short].value
+class Schematic private(val width: Int, val height: Int, val length: Int, blocks: Array[Material]) {
 
   /**
     * Returns the block at the given coordinates.
@@ -40,7 +20,7 @@ case class Schematic private(tree: TAG_Compound) {
     * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
     */
   @throws[IndexOutOfBoundsException]
-  def apply(x: Int, y: Int, z: Int): Block.Value = getBlock(x, y, z)
+  def apply(x: Int, y: Int, z: Int): Material = getBlock(x, y, z)
 
   /**
     * Change the block at the given coordinates.
@@ -48,11 +28,11 @@ case class Schematic private(tree: TAG_Compound) {
     * @param x The x coordinate, has to be less than the width
     * @param y The y coordinate, has to be less than the height
     * @param z The z coordinate, has to be less than the length
-    * @param block The block to set
+    * @param material The material to set
     * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
     */
   @throws[IndexOutOfBoundsException]
-  def update(x: Int, y: Int, z: Int, block: Int): Unit = setBlock(x, y, z, block)
+  def update(x: Int, y: Int, z: Int, material: Material): Unit = setBlock(x, y, z, material)
 
   /**
     * Returns the block at the given coordinates.
@@ -60,13 +40,13 @@ case class Schematic private(tree: TAG_Compound) {
     * @param x The x coordinate, has to be less than the width
     * @param y The y coordinate, has to be less than the height
     * @param z The z coordinate, has to be less than the length
-    * @return The block at the given value
+    * @return The block material at the given value
     * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
     */
   @throws[IndexOutOfBoundsException]
-  def getBlock(x: Int, y: Int, z: Int): Block.Value = {
-    assertCoordinatesAreGood(x, y, z)
-    Block(blocks((y * length + z) * width + x))
+  def getBlock(x: Int, y: Int, z: Int): Material = {
+    assertCoordinatesAreInBounds(x, y, z)
+    blocks((y * length + z) * width + x)
   }
 
   /**
@@ -75,51 +55,30 @@ case class Schematic private(tree: TAG_Compound) {
     * @param x The x coordinate, has to be less than the width
     * @param y The y coordinate, has to be less than the height
     * @param z The z coordinate, has to be less than the length
-    * @param block The block to set
+    * @param material The material to set
     * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
     */
   @throws[IndexOutOfBoundsException]
-  def setBlock(x: Int, y: Int, z: Int, block: Int): Unit = {
-    assertCoordinatesAreGood(x, y, z)
-    blocks((y * length + z) * width + x) = block.toByte
-  }
-
-  /**
-    * Returns the data at the given coordinates. The data is the additional info about the block,
-    * e.g. the axis for a log, the stage of a growing crop or the color of a wool block.
-    *
-    * @param x The x coordinate, has to be less than the width
-    * @param y The y coordinate, has to be less than the height
-    * @param z The z coordinate, has to be less than the length
-    * @return The data to set to this block
-    * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
-    */
-  @throws[IndexOutOfBoundsException]
-  def getData(x: Int, y: Int, z: Int): Byte = {
-    assertCoordinatesAreGood(x, y, z)
-    data((y * length + z) * width + x)
-  }
-
-  /**
-    * Change the data at the given coordinates. The data is the additional info about the block,
-    * e.g. the axis for a log, the stage of a growing crop or the color of a wool block.
-    *
-    * @param x The x coordinate, has to be less than the width
-    * @param y The y coordinate, has to be less than the height
-    * @param z The z coordinate, has to be less than the length
-    * @param blockData The data to set
-    * @throws IndexOutOfBoundsException An exception is thrown if one of the coordinates is out of bounds
-    */
-  @throws[IndexOutOfBoundsException]
-  def setData(x: Int, y: Int, z: Int, blockData: Int): Unit = {
-    assertCoordinatesAreGood(x, y, z)
-    data((y * length + z) * width + x) = blockData.toByte
+  def setBlock(x: Int, y: Int, z: Int, material: Material): Unit = {
+    assertCoordinatesAreInBounds(x, y, z)
+    blocks((y * length + z) * width + x) = material
   }
 
   /**
     * @return A NBT data structure that represents the schematic
     */
-  def toNBT: NBT = NBT("Schematic", tree)
+  def toNBT: NBT = new NBT(
+    "Schematic",
+    TAG_Compound(
+      "Width" -> TAG_Short(width.toShort),
+      "Height" -> TAG_Short(height.toShort),
+      "Length" -> TAG_Short(length.toShort),
+      "Materials" -> TAG_String("Alpha"),
+      "TileEntities" -> TAG_List(),
+      "Blocks" -> TAG_Byte_Array(blocks.map(_.id.toByte)),
+      "Data" -> TAG_Byte_Array(blocks.map(_.variant.toByte))
+    )
+  )
 
   /**
     * Tests whether the given coordinates can be safely used to access a block in the blocks array.
@@ -130,7 +89,7 @@ case class Schematic private(tree: TAG_Compound) {
     * @throws IllegalArgumentException If one of the coordinates is out of bounds.
     */
   @throws[IllegalArgumentException]
-  private def assertCoordinatesAreGood(x: Int, y: Int, z: Int): Unit = {
+  private def assertCoordinatesAreInBounds(x: Int, y: Int, z: Int): Unit = {
     if(x >= width) throw new IndexOutOfBoundsException("x is greater than width (" + x + " >= " + width + ")")
     else if(y >= height) throw new IndexOutOfBoundsException("y is greater than height (" + y + " >= " + height + ")")
     else if(z >= length) throw new IndexOutOfBoundsException("z is greater than length (" + z + " >= " + length + ")")
@@ -151,7 +110,7 @@ object Schematic {
     * @return Either the schematic if all the required fields were well defined or an exception if the
     *         process failed.
     */
-  def apply(nbtTree: NBT): Try[Schematic] = Try {
+  def fromNbt(nbtTree: NBT): Try[Schematic] = Try {
     if(nbtTree.name != "Schematic")
       throw new IllegalArgumentException("Incorrect structure name. Expecting: \"Schematic\", found: " + nbtTree.name)
     if(!nbtTree.tree.isInstanceOf[TAG_Compound])
@@ -175,21 +134,20 @@ object Schematic {
     if(!compound.findByteArray("Data").exists(_.bytes.length == width * height * length))
       throw new IllegalArgumentException("Attribute \"Data\" is missing, is not a TAG_Byte_Array or has an incorrect size")
 
-    Schematic(nbtTree.tree.asInstanceOf[TAG_Compound])
+    val blockIds = nbtTree.tree.findByteArray("Blocks").get.bytes
+    val blocksData = nbtTree.tree.findByteArray("Data").get.bytes
+
+    val materials = (blockIds zip blocksData).map(idAndData =>
+      Material.all
+        .find(mat => mat._2.id == idAndData._1 && mat._2.variant == idAndData._2)
+        .fold(Material.Air)(_._2)
+    )
+
+    new Schematic(width, height, length, materials)
   }
 
-  def apply(width: Int, height: Int, length: Int): Schematic = {
-    Schematic(TAG_Compound(Map(
-      "Width" -> TAG_Short(width.toShort),
-      "Height" -> TAG_Short(height.toShort),
-      "Length" -> TAG_Short(length.toShort),
-      "Materials" -> TAG_String("Alpha"),
-      "Blocks" -> TAG_Byte_Array(Array.ofDim(width * height * length)),
-      "Data" -> TAG_Byte_Array(Array.ofDim(width * height * length)),
-      "TileEntities" -> TAG_List()
-    )))
+  def create(width: Int, height: Int, length: Int): Schematic = {
+    new Schematic(width, height, length, Array.fill(width * height * length)(Material.Air))
   }
-
-  def unapply(arg: Schematic): Option[NBT] = Some(NBT("Schematic", arg.tree))
 
 }

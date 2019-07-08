@@ -8,7 +8,11 @@ import scala.collection.mutable
 
 object ObjectToSchematicConverter {
 
-  def createSchematic(objects: List[Object], mergeStrategy: MergeStrategy): Schematic = {
+  def createSchematic(objects: List[Object]): Schematic = {
+
+    var blocksAdded = 0
+    var fillTriangleCalls = 0
+    var fillLineCalls = 0
 
     def fillFace(blocksMap: mutable.HashMap[(Int, Int, Int), mutable.HashMap[MaterialGroup, Int]],
                  materialGroup: MaterialGroup,
@@ -25,27 +29,35 @@ object ObjectToSchematicConverter {
       materialGroup: MaterialGroup,
       v1: (Double, Double, Double),
       v2: (Double, Double, Double),
-      v3: (Double, Double, Double),
-      lastBlock: Option[(Int, Int, Int)] = None): Unit = {
+      v3: (Double, Double, Double)): Unit = {
+      fillTriangleCalls += 1
       val center = (v1 + v2 + v3) / 3
       val coords1 = v1.round
       val coords2 = v2.round
       val coords3 = v3.round
       val coordsCenter = center.round
-      if(!lastBlock.contains(coordsCenter))
-        addToBlocks(blocksMap, coordsCenter, materialGroup)
-      if(coords1 == coordsCenter || coords2 == coordsCenter || coords3 == coordsCenter) {
+      addToBlocks(blocksMap, coordsCenter, materialGroup)
+      if(coords1 == coordsCenter || coords2 == coordsCenter || coords3 == coordsCenter || coords1 == coords2 || coords1 == coords3 || coords2 == coords3) {
         fillLine(blocksMap, materialGroup, v1, v2)
         fillLine(blocksMap, materialGroup, v1, v3)
         fillLine(blocksMap, materialGroup, v2, v3)
       } else {
-        val med12 = (v1 + v2) / 2
-        val med13 = (v1 + v3) / 2
-        val med23 = (v2 + v3) / 2
-        fillTriangle(blocksMap, materialGroup, v1, med12, med13)
-        fillTriangle(blocksMap, materialGroup, v2, med12, med23)
-        fillTriangle(blocksMap, materialGroup, v3, med13, med23)
-        fillTriangle(blocksMap, materialGroup, med12, med13, med23)
+        val d12 = v1.distanceTo(v2)
+        val d13 = v1.distanceTo(v3)
+        val d23 = v2.distanceTo(v3)
+        if(d12 >= d13 && d12 >= d23){
+          val med = (v1 + v2) / 2
+          fillTriangle(blocksMap, materialGroup, v1, v3, med)
+          fillTriangle(blocksMap, materialGroup, v2, v3, med)
+        } else if(d13 >= d23){
+          val med = (v1 + v3) / 2
+          fillTriangle(blocksMap, materialGroup, v1, v2, med)
+          fillTriangle(blocksMap, materialGroup, v3, v2, med)
+        } else {
+          val med = (v2 + v3) / 2
+          fillTriangle(blocksMap, materialGroup, v2, v1, med)
+          fillTriangle(blocksMap, materialGroup, v3, v1, med)
+        }
       }
     }
 
@@ -54,6 +66,7 @@ object ObjectToSchematicConverter {
                          v1: (Double, Double, Double),
                          v2: (Double, Double, Double),
                          lastBlock: Option[(Int, Int, Int)] = None): Unit = {
+      fillLineCalls += 1
       if(v1.round.isNeighbor(v2.round)) return
       if(v1.distanceTo(v2) < .2) return
       val center = (v1 + v2) / 2
@@ -67,12 +80,12 @@ object ObjectToSchematicConverter {
     def addToBlocks(blocksMap: mutable.HashMap[(Int, Int, Int), mutable.HashMap[MaterialGroup, Int]],
                     coords: (Int, Int, Int),
                     group: MaterialGroup): Unit = {
+      blocksAdded += 1
       val materials = blocksMap.getOrElse(coords, new mutable.HashMap[MaterialGroup, Int]())
       val candidatesNumber = materials.getOrElse(group, 0) + 1
       materials.update(group, candidatesNumber)
       blocksMap.update(coords, materials)
     }
-
     val allMaterials = Time {
       print("Extracting materials... ")
       objects.flatMap(_.materialsToFaces.keys).distinct
@@ -89,15 +102,22 @@ object ObjectToSchematicConverter {
       }).toMap
     }(t => println("done in " + t + " ms"))
 
-    val facesToFill = Time {
-      print("Caching faces... ")
-      objects.flatMap(_.materialsToFaces.filter(_._1.materialsToWeights.nonEmpty).toList.flatMap(kv => kv._2.map(kv._1 -> _.vertices)))
-    }(t => println("           done in " + t + " ms"))
-
     val allBlocks = new mutable.HashMap[(Int, Int, Int), mutable.HashMap[MaterialGroup, Int]]()
-    Time {
+
+    val nbFaces = Time {
       print("Converting structure... ")
-      facesToFill.foreach(kv => fillFace(allBlocks, kv._1, kv._2:_*))
+      var nFace = 0
+      objects.foreach(o => {
+        o.materialsToFaces.foreach(groupToFaces => {
+          if(groupToFaces._1.materialsToWeights.nonEmpty){
+            groupToFaces._2.foreach(face => {
+              fillFace(allBlocks, groupToFaces._1, face.vertices:_*)
+              nFace += 1
+            })
+          }
+        })
+      })
+      nFace
     }(t => println("    done in " + t + " ms"))
 
     val blocksToMaterials = Time {
@@ -130,40 +150,27 @@ object ObjectToSchematicConverter {
     val width = xMax - xMin + 1
     val height = yMax - yMin + 1
     val length = zMax - zMin + 1
-    val schematic = Schematic(width, height, length)
-
-    println("Schematic width:  " + width)
-    println("Schematic height: " + height)
-    println("Schematic length: " + length)
-    println("Faces computed:   " + facesToFill.size)
-    println("Blocks generated: " + allBlocks.size)
+    val schematic = Schematic.create(width, height, length)
 
     Time {
       print("Filling schematic... ")
       blocksToMaterials.foreach(kv => {
         val rand = math.random()
         val material = mats(kv._2).find(_._2 > rand).get._1
-        schematic.setBlock(kv._1._1 - xMin, kv._1._2 - yMin, kv._1._3 - zMin, material.blockId)
-        schematic.setData(kv._1._1 - xMin, kv._1._2 - yMin, kv._1._3 - zMin, material.data)
+        schematic(kv._1._1 - xMin, kv._1._2 - yMin, kv._1._3 - zMin) = material
       })
     }(t => println("       done in " + t + " ms"))
 
+    println("Faces computed:      " + nbFaces)
+    println("Triangle iterations: " + fillTriangleCalls)
+    println("Line iterations:     " + fillLineCalls)
+    println("Blocks payload:      " + blocksAdded)
+    println("Blocks generated:    " + allBlocks.size)
+    println("Schematic width:     " + width)
+    println("Schematic height:    " + height)
+    println("Schematic length:    " + length)
+
     schematic
-  }
-
-  ///// Constants /////
-
-  sealed trait MergeStrategy { val description: String }
-  case object MostRepresentedGroup extends MergeStrategy {
-    override val description =
-      "If more than one group can be set to a single block, the group the most represented by the faces in the block will be chosen (slower)"
-  }
-  case object MixGroups extends MergeStrategy {
-    override val description =
-      "All the groups that can be set to a single block will be represented with their ratio (slowest)"
-  }
-  case object Default extends MergeStrategy {
-    override val description = "A group will be set arbitrary (fastest)"
   }
 
   ///// Implicit helpers /////

@@ -1,7 +1,5 @@
 package model.nbt.utils
 
-import java.lang.reflect.MalformedParametersException
-
 import model.nbt._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
@@ -70,7 +68,7 @@ object Extensions {
         Right(index.tail.init.toInt) -> query.replaceFirst("""\[\d+\]""", "")
       case fieldRegex(field, _*) => // e.g. "myfield"
         Left(field) -> query.replaceFirst("""[^\[\]\.]+""", "").replaceFirst("""^\.""", "")
-      case _ => throw new MalformedParametersException("Invalid query string: '" + query + "'")
+      case _ => throw new IllegalArgumentException("Invalid query string: '" + query + "'")
     }
   }
 }

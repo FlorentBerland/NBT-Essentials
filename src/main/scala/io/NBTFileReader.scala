@@ -1,6 +1,6 @@
 package io
 
-import java.io.{FileInputStream, InputStream}
+import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.util.zip.GZIPInputStream
 
@@ -87,7 +87,7 @@ object NBTFileReader {
     }
     val tagType = readByte()
     val tagName = readString()
-    NBT(tagName, readTagContent(tagType))
+    new NBT(tagName, readTagContent(tagType))
   }
 
   def printNBT(nbtTree: NBT): Unit = {

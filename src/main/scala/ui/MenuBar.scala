@@ -77,7 +77,7 @@ class MenuBar(store: DataStore) extends JMenuBar {
         val emptyGroups = objects.map(o => o.materialsToLines.count(_._1.materialsToWeights.isEmpty) + o.materialsToFaces.count(_._1.materialsToWeights.isEmpty)).sum
         if(emptyGroups > 0) println("Found " + emptyGroups + " empty groups")
 
-        val schematic = ObjectToSchematicConverter.createSchematic(objects, ObjectToSchematicConverter.Default)
+        val schematic = ObjectToSchematicConverter.createSchematic(objects)
 
         NBTFileWriter.write(file, schematic.toNBT) match {
           case Success(_) => println("Schematic saved")

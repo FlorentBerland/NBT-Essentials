@@ -12,3 +12,9 @@ final case class TAG_Compound(elems: Map[String, TAG]) extends TAG {
 
   def get(name: String): Option[TAG] = elems.get(name)
 }
+
+object TAG_Compound {
+
+  def apply(elems: (String, TAG)*): TAG_Compound = TAG_Compound(elems.toMap)
+
+}

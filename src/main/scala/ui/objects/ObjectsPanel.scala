@@ -11,7 +11,7 @@ class ObjectsPanel(store: DataStore) extends JScrollPane {
   getViewport.add(new JPanel(){
     private var _oldObjectsToSelection = store.objectsToSelection
     private var _checkBoxes = store.objectsToSelection
-      .map(kv => new ObjectCheckbox(kv._1, store))
+      .keys.map(objects => new ObjectCheckbox(objects, store))
       .toArray.sortBy(_.getObject.name)
     setLayout(new BoxLayout(this, BoxLayout.Y_AXIS))
 
@@ -20,14 +20,14 @@ class ObjectsPanel(store: DataStore) extends JScrollPane {
         val sortedObjects = store.objectsToSelection.keySet.toArray.sortBy(_.name)
         if(_checkBoxes.length < sortedObjects.length){
           // Add new checkboxes
-          _checkBoxes = _checkBoxes ++ sortedObjects.view(_checkBoxes.length, sortedObjects.length).map(obj => {
+          _checkBoxes = _checkBoxes ++ sortedObjects.view.slice(_checkBoxes.length, sortedObjects.length).map(obj => {
               val chk = new ObjectCheckbox(obj, store)
               add(chk)
               chk
             })
         } else if(_checkBoxes.length > sortedObjects.length){
           // Remove the excess
-          _checkBoxes.view(sortedObjects.length, _checkBoxes.length).foreach(remove)
+          _checkBoxes.view.slice(sortedObjects.length, _checkBoxes.length).foreach(remove)
           _checkBoxes = _checkBoxes.take(sortedObjects.length)
         }
         // Replace the values
